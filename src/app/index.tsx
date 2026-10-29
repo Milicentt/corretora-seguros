@@ -1,7 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
+  useFonts,
+  Lato_400Regular,
+  Lato_700Bold,
+} from '@expo-google-fonts/lato';
+import {
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +20,11 @@ export default function HomeScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [fontesCarregadas] =
+    useFonts({
+      Lato_400Regular,
+      Lato_700Bold
+    });
 
   function entrar() {
     if (!email.trim() || !senha.trim()) {
@@ -23,10 +34,23 @@ export default function HomeScreen() {
 
     Alert.alert('Olá!', 'Botão de entrar funcionando!');
   }
-
+  if (!fontesCarregadas) {
+    return null;
+  }
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.conteudo}>
+        <Image
+          source={require('../../assets/images/logo-corretora.png')}
+          style={{
+            width: 280,
+            height: 110,
+            alignSelf: 'center',
+            marginBottom: 24,
+          }}
+          resizeMode="contain"
+          accessibilityLabel="Rio do A Corretora de Seguros"
+        />
         <Text style={styles.titulo}>Bem-vindo(a)!</Text>
 
         <Text style={styles.subtitulo}>
@@ -38,7 +62,7 @@ export default function HomeScreen() {
           <Ionicons
             name="mail-outline"
             size={22}
-            color="#668576"
+            color="#287E9B"
           />
           <TextInput
             style={styles.inputComIcone}
@@ -56,7 +80,7 @@ export default function HomeScreen() {
           <Ionicons
             name="lock-closed-outline"
             size={22}
-            color="#668576"
+            color="#287E9B"
           />
 
 
@@ -114,7 +138,6 @@ const styles = StyleSheet.create({
   },
   titulo: {
     fontSize: 30,
-    fontWeight: 'bold',
     color: '#30356B',
     textAlign: 'center',
     marginBottom: 12,
