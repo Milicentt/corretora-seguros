@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 import { useState } from 'react';
 import {
   useFonts,
@@ -17,6 +18,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+  const [carregando, setCarregando] = useState(false);
+  const [mensagem, setMensagem] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -26,14 +29,44 @@ export default function HomeScreen() {
       Lato_700Bold
     });
 
-  function entrar() {
-    if (!email.trim() || !senha.trim()) {
-      Alert.alert('Atenção', 'Preencha o e-mail e a senha.');
+  async function entrar() {
+    if (carregando) return;
+
+    setMensagem('');
+
+    if (!email.trim() || !senha) {
+      setMensagem('Preencha o e-mail e a senha.');
       return;
     }
 
-    Alert.alert('Olá!', 'Botão de entrar funcionando!');
+    setCarregando(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: senha,
+      });
+
+      if (error) {
+        setMensagem(
+          error.code === 'invalid_credentials'
+            ? 'E-mail ou senha incorretos.'
+            : 'Não foi possível entrar. Tente novamente.'
+        );
+        return;
+      }
+
+      if (data.session) {
+        setMensagem('Login realizado com sucesso!');
+        setSenha('');
+      }
+    } catch {
+      setMensagem('Falha na conexão. Confira sua internet e tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
   }
+
   if (!fontesCarregadas) {
     return null;
   }
@@ -109,6 +142,18 @@ export default function HomeScreen() {
         >
           <Text style={styles.textoBotao}>Entrar</Text>
         </Pressable>
+        {mensagem !== '' && (
+  <Text
+    accessibilityLiveRegion="polite"
+    style={{
+      color: '#30356B',
+      textAlign: 'center',
+      marginTop: 16,
+    }}
+  >
+    {mensagem}
+  </Text>
+)}
       </View>
     </SafeAreaView>
   );
