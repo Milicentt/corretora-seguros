@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 import { useState } from 'react';
 import {
+  useFonts,
+  Lato_400Regular,
+  Lato_700Bold,
+} from '@expo-google-fonts/lato';
+import {
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -11,150 +18,221 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
-const [email, setEmail] = useState('');
-const [senha, setSenha] = useState('');
+  const [carregando, setCarregando] = useState(false);
+  const [mensagem, setMensagem] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [fontesCarregadas] =
+    useFonts({
+      Lato_400Regular,
+      Lato_700Bold
+    });
 
-function entrar() {
-if (!email.trim() || !senha.trim()) {
-Alert.alert('Atenção', 'Preencha o e-mail e a senha.');
-return;
-}
+  async function entrar() {
+    if (carregando) return;
 
-Alert.alert('Olá!', 'Botão de entrar funcionando!');
-}
+    setMensagem('');
 
-return (
-<SafeAreaView style={styles.container}>
-<View style={styles.conteudo}>
-<Text style={styles.titulo}>Bem-vindo(a)!</Text>
+    if (!email.trim() || !senha) {
+      setMensagem('Preencha o e-mail e a senha.');
+      return;
+    }
 
-<Text style={styles.subtitulo}>
-Entre na sua conta para continuar.
-</Text>
+    setCarregando(true);
 
-<Text style={styles.label}>E-mail</Text>
-<View style={styles.campoEmail}>
-<Ionicons
-name="mail-outline"
-size={22}
-color="#668576"
-/>
-<TextInput
-          style={styles.inputComIcone}
-          placeholder="E-mail"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          accessibilityLabel="Campo de e-mail"
-          value={email}
-          onChangeText={setEmail}
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: senha,
+      });
+
+      if (error) {
+        setMensagem(
+          error.code === 'invalid_credentials'
+            ? 'E-mail ou senha incorretos.'
+            : 'Não foi possível entrar. Tente novamente.'
+        );
+        return;
+      }
+
+      if (data.session) {
+        setMensagem('Login realizado com sucesso!');
+        setSenha('');
+      }
+    } catch {
+      setMensagem('Falha na conexão. Confira sua internet e tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  if (!fontesCarregadas) {
+    return null;
+  }
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.conteudo}>
+        <Image
+          source={require('../../assets/images/logo-corretora.png')}
+          style={{
+            width: 280,
+            height: 110,
+            alignSelf: 'center',
+            marginBottom: 24,
+          }}
+          resizeMode="contain"
+          accessibilityLabel="Rio do A Corretora de Seguros"
         />
+        <Text style={styles.titulo}>Bem-vindo(a)!</Text>
+
+        <Text style={styles.subtitulo}>
+          Entre na sua conta para continuar.
+        </Text>
+
+        <Text style={styles.label}>E-mail</Text>
+        <View style={styles.campoEmail}>
+          <Ionicons
+            name="mail-outline"
+            size={22}
+            color="#287E9B"
+          />
+          <TextInput
+            style={styles.inputComIcone}
+            placeholder="Digite seu e-mail"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            accessibilityLabel="Campo de e-mail"
+            value={email}
+            onChangeText={setEmail}
+          />
         </View>
 
-<View style={styles.campoSenha}>
-  <Ionicons
-    name="lock-closed-outline"
-    size={22}
-    color="#668576"
-  />
+        <Text style={styles.label}>Senha</Text>
+        <View style={styles.campoSenha}>
+          <Ionicons
+            name="lock-closed-outline"
+            size={22}
+            color="#287E9B"
+          />
 
-<Ionicons
-    name="eye-off-outline"
-    size={22}
-    color="#668576"
-  />
-  <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          secureTextEntry={true}
-          accessibilityLabel="Campo de senha"
-          value={senha}
-          onChangeText={setSenha}
-        />
-</View>
 
-<Pressable
+          <TextInput
+            style={styles.inputComIcone}
+            placeholder="Digite sua senha"
+            secureTextEntry={!mostrarSenha}
+            accessibilityLabel="Campo de senha"
+            value={senha}
+            onChangeText={setSenha}
+          />
+          <Pressable onPress={() => setMostrarSenha(!mostrarSenha)}>
+
+            <Ionicons
+              name={mostrarSenha ? 'eye-off-outline' : 'eye-outline'}
+              size={22}
+              color="#668576"
+            />
+          </Pressable>
+        </View>
+
+        <Pressable
           style={styles.botao}
           onPress={entrar}
           accessibilityRole="button"
         >
-<Text style={styles.textoBotao}>Entrar</Text>
-</Pressable>
-</View>
-</SafeAreaView>
-);
+          <Text style={styles.textoBotao}>Entrar</Text>
+        </Pressable>
+        {mensagem !== '' && (
+  <Text
+    accessibilityLiveRegion="polite"
+    style={{
+      color: '#30356B',
+      textAlign: 'center',
+      marginTop: 16,
+    }}
+  >
+    {mensagem}
+  </Text>
+)}
+      </View>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
   inputComIcone: {
-  flex: 1,
-  paddingVertical: 15,
-  paddingHorizontal: 12,
-  fontSize: 15,
-  color: '#3F604A',
-},
-container: {
-flex: 1,
-backgroundColor: '#F8F5F2',
-justifyContent: 'center',
-padding: 24,
-},
-conteudo: {
-width: '100%',
-maxWidth: 400,
-alignSelf: 'center',
-},
-titulo: {
-fontSize: 30,
-fontWeight: 'bold',
-color: '#514A46',
-textAlign: 'center',
-marginBottom: 12,
-},
-subtitulo: {
-fontSize: 15,
-color: '#807873',
-textAlign: 'center',
-marginBottom: 36,
-},
-label: {
-fontSize: 15,
-color: '#514A46',
-marginBottom: 8,
-},
-input: {
-backgroundColor: '#E8EDE7',
-borderWidth: 0,
-borderRadius: 30,
-paddingHorizontal: 20,
-marginBottom: 16,
-fontSize: 15,
-color: '#3f604A',
-},
-botao: {
-backgroundColor: '#8DAB9E',
-padding: 16,
-borderRadius: 12,
-alignItems: 'center',
-marginTop: 12,
-},
-campoEmail: {
-flexDirection:'row',
-alignItems:'center',
-backgroundColor:'#E8EDE7',
-borderRadius: 30,
-paddingHorizontal: 20,
-marginBottom: 16,
-},
-textoBotao: {
-color: '#FFFFFF',
-fontSize: 17,
-fontWeight: 'bold',
-},
-campoSenha:{
-flexDirection:'row',
-alignItems:'center',
-backgroundColor:'#E8EDE7',
-paddingHorizontal: 20,
-marginBottom:16,
-borderRadius:30},
+    outlineWidth: 0,
+    borderWidth: 0,
+    outlineStyle: 'solid',
+    flex: 1,
+    paddingVertical: 15,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: '#3F604A',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#F0FAFC',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  conteudo: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  titulo: {
+    fontSize: 30,
+    color: '#30356B',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  subtitulo: {
+    fontSize: 15,
+    color: '#807873',
+    textAlign: 'center',
+    marginBottom: 36,
+  },
+  label: {
+    fontSize: 15,
+    color: '#30356B',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#E8EDE7',
+    borderWidth: 0,
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    fontSize: 15,
+    color: '#3f604A',
+  },
+  botao: {
+    backgroundColor: '#1688B5',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  campoEmail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E1F1F6',
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  textoBotao: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  campoSenha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E1F1F6',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 30
+  },
 });
