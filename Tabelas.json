@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, FlatList, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 export default function App() {
@@ -51,6 +51,11 @@ export default function App() {
     }
   };
 
+  const acaoBotao = (item) => {
+    console.log('Botão clicado para:', item.produtor);
+    alert(`Pago Para: ${item.produtor}`);
+  };
+
   // Renderizador da 1ª Tabela (Geral)
   const renderItemGeral = ({ item, index }) => (
     <View style={[styles.row, index % 2 === 1 && styles.alternateRow]}>
@@ -58,6 +63,14 @@ export default function App() {
       <Text style={styles.cell} numberOfLines={1}>{item.comissaoTotal}</Text>
       <Text style={styles.cell} numberOfLines={1}>{item.comissaoParcial}</Text>
       <Text style={styles.cell} numberOfLines={1}>{item.datalan}</Text>
+      <View style = {styles.cellButtonContainer}>
+        <TouchableOpacity
+          style={styles.botao}
+          onPress={() => acaoBotao(item)}
+        >
+          <Text style={styles.textoBotao}>Pagar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -155,7 +168,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 8,
     justifyContent: 'center',
-    backgroundColor: '#EDF2F7', // Leve destaque de cor para diferenciar as metades
+    backgroundColor: '#EDF2F7',
   },
   titulo: {
     fontSize: 14,
@@ -194,6 +207,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#2C3E50',
     paddingVertical: 8,
+    alignItems: 'center',
   },
   headerCell: {
     color: '#FFFFFF',
@@ -217,5 +231,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#334155',
     paddingHorizontal: 2,
+  },
+  cellButtonContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botao: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  textoBotao: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
