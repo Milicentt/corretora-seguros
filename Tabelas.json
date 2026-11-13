@@ -3,28 +3,30 @@ import { StyleSheet, View, Text, SafeAreaView, FlatList, ActivityIndicator, Touc
 import { Picker } from '@react-native-picker/picker';
 
 export default function App() {
-  const [dataGeral, setDataGeral] = useState([]); // Dados completos para a 1ª tabela
-  const [dataFiltrada, setDataFiltrada] = useState([]); // Dados filtrados para a 2ª tabela
-  const [listaProdutores, setListaProdutores] = useState([]); // Lista dinâmica para o Picker
-  const [produtorSelecionado, setProdutorSelecionado] = useState('TODOS'); // Item selecionado no Picker
+  const [dataGeral, setDataGeral] = useState([]); // Dados completos
+  const [dataFiltrada, setDataFiltrada] = useState([]); // Dados exibidos na tabela
+  const [listaProdutores, setListaProdutores] = useState([]); // Lista para o Picker
+  const [produtorSelecionado, setProdutorSelecionado] = useState('TODOS');
   const [loading, setLoading] = useState(true);
+
+
+  const [colunaOrdenada, setColunaOrdenada] = useState(null);
+  const [ordemCrescente, setOrdemCrescente] = useState(true);
 
   useEffect(() => {
     async function buscarDadosDoBanco() {
       try {
         setTimeout(() => {
           const dadosDoBanco = [
-            // Alterar para uso de banco de dados depois
-            { id: '1', produtor: 'Ana Silva', comissaoTotal: 'R$ 1.200', comissaoParcial: 'R$ 600' },
-            { id: '2', produtor: 'Carlos Lima', comissaoTotal: 'R$ 2.500', comissaoParcial: 'R$ 1.250' },
-            { id: '3', produtor: 'Beatriz Souza', comissaoTotal: 'R$ 900', comissaoParcial: 'R$ 450' },
-            { id: '4', produtor: 'Marcos Dias', comissaoTotal: 'R$ 3.100', comissaoParcial: 'R$ 1.550' },
-            { id: '5', produtor: 'Ana Silva', comissaoTotal: 'R$ 800', comissaoParcial: 'R$ 400' },
+            { id: '1', produtor: 'Ana Silva', comissaoTotal: 'R$ 1.200', comissaoParcial: 'R$ 600', pagdat: '24/04/2026' },
+            { id: '2', produtor: 'Carlos Lima', comissaoTotal: 'R$ 2.500', comissaoParcial: 'R$ 1.250', pagdat: '30/05/2027' },
+            { id: '3', produtor: 'Beatriz Souza', comissaoTotal: 'R$ 900', comissaoParcial: 'R$ 450', pagdat: '31/03/2027' },
+            { id: '4', produtor: 'Marcos Dias', comissaoTotal: 'R$ 3.100', comissaoParcial: 'R$ 1.550', pagdat: '07/10/2027' },
+            { id: '5', produtor: 'Ana Silva', comissaoTotal: 'R$ 800', comissaoParcial: 'R$ 400', pagdat: '13/12/2026' },
           ];
 
           setDataGeral(dadosDoBanco);
-          setDataFiltrada(dadosDoBanco);
-
+          setDataFiltrada(dadosDoBanco); // Começa mostrando tudo
           
           const produtoresUnicos = [...new Set(dadosDoBanco.map(item => item.produtor))];
           setListaProdutores(produtoresUnicos);
@@ -38,17 +40,64 @@ export default function App() {
     }
 
     buscarDadosDoBanco();
+
   }, []);
 
-  
   const filtrarProdutor = (valor) => {
     setProdutorSelecionado(valor);
-    if (valor === 'TODOS') {
-      setDataFiltrada(dataGeral);
+    let baseDados = valor === 'TODOS' ? dataGeral : dataGeral.filter(item => item.produtor === valor);
+    
+    // Mantém a ordenação atual aplicada mesmo ao filtrar
+    if (colunaOrdenada) {
+      aplicarOrdenacao(colunaOrdenada, baseDados, ordemCrescente);
     } else {
-      const filtrados = dataGeral.filter(item => item.produtor === valor);
-      setDataFiltrada(filtrados);
+      setDataFiltrada(baseDados);
     }
+  };
+
+  const ordenarPor = (coluna) => {
+    let novaOrdem = ordemCrescente;
+    if (colunaOrdenada === coluna) {
+      novaOrdem = !ordemCrescente; // Inverte se for a mesma coluna
+    } else {
+      novaOrdem = true; // Começa como crescente para uma nova coluna
+    }
+
+    setColunaOrdenada(coluna);
+    setOrdemCrescente(novaOrdem);
+
+    let baseDados = produtorSelecionado === 'TODOS' 
+      ? [...dataGeral] 
+      : dataGeral.filter(item => item.produtor === produtorSelecionado);
+
+    aplicarOrdenacao(coluna, baseDados, novaOrdem);
+  };
+
+  const aplicarOrdenacao = (coluna, dados, crescente) => {
+    const dadosOrdenados = dados.sort((a, b) => {
+      let valorA = a[coluna];
+      let valorB = b[coluna];
+
+      // Tratamento especial para valores monetários (Ex: "R$ 1.200")
+      if (coluna === 'comissaoTotal' || coluna === 'comissaoParcial') {
+        valorA = parseFloat(valorA.replace('R$ ', '').replace('.', '').replace(',', '.'));
+        valorB = parseFloat(valorB.replace('R$ ', '').replace('.', '').replace(',', '.'));
+      }
+
+      // Tratamento especial para Datas (Ex: "24/04/2026")
+      if (coluna === 'datalan') {
+        const [diaA, mesA, anoA] = valorA.split('/');
+        const [diaB, mesB, anoB] = valorB.split('/');
+        valorA = new Date(`${anoA}-${mesA}-${diaA}`);
+        valorB = new Date(`${anoB}-${mesB}-${diaB}`);
+      }
+
+      if (valorA < valorB) return crescente ? -1 : 1;
+      if (valorA > valorB) return crescente ? 1 : -1;
+      return 0;
+    });
+
+    setDataFiltrada([...dadosOrdenados]);
   };
 
   const acaoBotao = (item) => {
@@ -56,14 +105,14 @@ export default function App() {
     alert(`Pago Para: ${item.produtor}`);
   };
 
-  // Renderizador da 1ª Tabela (Geral)
-  const renderItemGeral = ({ item, index }) => (
+  // Renderizador unificado da Tabela com o botão de Pagar
+  const renderItemTabela = ({ item, index }) => (
     <View style={[styles.row, index % 2 === 1 && styles.alternateRow]}>
       <Text style={styles.cell} numberOfLines={1}>{item.produtor}</Text>
       <Text style={styles.cell} numberOfLines={1}>{item.comissaoTotal}</Text>
       <Text style={styles.cell} numberOfLines={1}>{item.comissaoParcial}</Text>
-      <Text style={styles.cell} numberOfLines={1}>{item.datalan}</Text>
-      <View style = {styles.cellButtonContainer}>
+      <Text style={styles.cell} numberOfLines={1}>{item.pagdat}</Text>
+      <View style={styles.cellButtonContainer}>
         <TouchableOpacity
           style={styles.botao}
           onPress={() => acaoBotao(item)}
@@ -74,80 +123,71 @@ export default function App() {
     </View>
   );
 
-  // Renderizador da 2ª Tabela (Filtrada)
-  const renderItemFiltrado = ({ item, index }) => (
-    <View style={[styles.row, index % 2 === 1 && styles.alternateRow]}>
-      <Text style={styles.cell} numberOfLines={1}>{item.produtor}</Text>
-      <Text style={styles.cell} numberOfLines={1}>{item.comissaoTotal}</Text>
-      <Text style={styles.cell} numberOfLines={1}>{item.comissaoParcial}</Text>
-      <Text style={styles.cell} numberOfLines={1}>{item.datalan}</Text>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* 1ª METADE DA TELA: Relatório Geral da Corretora */}
-      <View style={styles.metadeSuperior}>
-        <Text style={styles.titulo}>Relatório de Comissões Corretora</Text>
+      <Text style={styles.tituloPrincipal}>Relatório de Comissões</Text>
 
-        <View style={styles.tabelaContainer}>
-          {loading ? (
-            <ActivityIndicator size="large" color="#2C3E50" style={{ flex: 1 }} />
-          ) : (
-            <>
-              <View style={styles.headerRow}>
-                <Text style={[styles.headerCell, styles.cell]}>Produtor</Text>
-                <Text style={[styles.headerCell, styles.cell]}>Comissão Total</Text>
-                <Text style={[styles.headerCell, styles.cell]}>Comissão Parcial</Text>
-              </View>
-
-              <FlatList
-                data={dataGeral}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItemGeral}
-              />
-            </>
-          )}
-        </View>
-      </View>
-
-      
-      <View style={styles.metadeInferior}>
-        <Text style={styles.titulo}>Relatório de Comissões por Produtor</Text>
-
-        
-        <View style={styles.pickerContainer}>
+      {/* Seletor (Picker) no topo */}
+      <View style={styles.pickerContainer}>
+        <Text style={styles.labelPicker}>Filtrar por Produtor:</Text>
+        <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={produtorSelecionado}
             onValueChange={(itemValue) => filtrarProdutor(itemValue)}
             style={styles.picker}
           >
-            <Picker.Item label="Selecione um produtor..." value="TODOS" />
+            <Picker.Item label="TODOS OS PRODUTORES" value="TODOS" />
             {listaProdutores.map((produtor, index) => (
               <Picker.Item key={index} label={produtor} value={produtor} />
             ))}
           </Picker>
         </View>
+      </View>
 
-        <View style={styles.tabelaContainer}>
-          {loading ? (
-            <ActivityIndicator size="large" color="#2C3E50" style={{ flex: 1 }} />
-          ) : (
-            <>
-              <View style={styles.headerRow}>
-                <Text style={[styles.headerCell, styles.cell]}>Produtor</Text>
-                <Text style={[styles.headerCell, styles.cell]}>Comissão Total</Text>
-                <Text style={[styles.headerCell, styles.cell]}>Comissão Parcial</Text>
+      {/* Tabela única unificada */}
+      <View style={styles.tabelaContainer}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#2C3E50" style={{ flex: 1, marginTop: 20 }} />
+        ) : (
+          <>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.headerCellTouchable} onPress={() => ordenarPor('produtor')}>
+                <Text style={[styles.cell, styles.headerCell]}>
+                  Produtor {colunaOrdenada === 'produtor' ? (ordemCrescente ? '▲' : '▼') : '-'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.headerCellTouchable} onPress={() => ordenarPor('comissaoTotal')}>
+                <Text style={[styles.cell, styles.headerCell]}>
+                  Comissão Total {colunaOrdenada === 'comissaoTotal' ? (ordemCrescente ? '▲' : '▼') : '-'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.headerCellTouchable} onPress={() => ordenarPor('comissaoParcial')}>
+                <Text style={[styles.cell, styles.headerCell]}>
+                  Comissão Parcial {colunaOrdenada === 'comissaoParcial' ? (ordemCrescente ? '▲' : '▼') : '-'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.headerCellTouchable} onPress={() => ordenarPor('pagdat')}>
+                <Text style={[styles.cell, styles.headerCell]}>
+                  Data {colunaOrdenada === 'pagdat' ? (ordemCrescente ? '▲' : '▼') : '-'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.cellButtonContainer}>
+                <Text style={[styles.headerCell, { textAlign: 'center' }]}></Text>
               </View>
+            </View>
 
-              <FlatList
-                data={dataFiltrada}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={renderItemFiltrado}
-              />
-            </>
-          )}
-        </View>
+            <FlatList
+              data={dataFiltrada}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItemTabela}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -157,41 +197,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
-    padding: 8,
+    padding: 12,
   },
-  metadeSuperior: {
-    flex: 1,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-  },
-  metadeInferior: {
-    flex: 1,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    backgroundColor: '#EDF2F7',
-  },
-  titulo: {
-    fontSize: 14,
+  tituloPrincipal: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#2C3E50',
-    marginBottom: 4,
+    color: '#fffffff',
+    marginBottom: 12,
     textAlign: 'center',
   },
   pickerContainer: {
+    marginBottom: 12,
+  },
+  labelPicker: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4A5568',
+    marginBottom: 4,
+  },
+  pickerWrapper: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 6,
-    marginBottom: 6,
-    height: 38,
+    overflow: 'hidden',
     justifyContent: 'center',
   },
   picker: {
-    height: 38,
+    height: 45,
     width: '100%',
   },
   tabelaContainer: {
-    height: 250, 
+    flex: 1,
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
@@ -206,17 +243,18 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     backgroundColor: '#2C3E50',
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
+    paddingLeft: 8,
   },
   headerCell: {
-    color: '#FFFFFF',
+    color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 11,
+    fontSize: 10,
   },
   row: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
     alignItems: 'center',
@@ -228,23 +266,23 @@ const styles = StyleSheet.create({
   cell: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 11,
+    fontSize: 10,
     color: '#334155',
     paddingHorizontal: 2,
   },
   cellButtonContainer: {
-    flex: 1,
+    flex: 1.1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   botao: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 4,
   },
   textoBotao: {
-    color: '#FFFFFF',
+    color: '#ffffff',
     fontSize: 10,
     fontWeight: 'bold',
   },
