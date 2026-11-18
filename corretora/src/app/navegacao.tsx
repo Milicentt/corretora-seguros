@@ -7,7 +7,7 @@ import TabelasScreen from './tabelas';
 import { listaMenus } from './menuDados';
 import { styles } from './navegacao.styles';
 
-export default function HomeDashboard() {
+export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
   const [telaAtual, setTelaAtual] = useState('Menu');
 
   // Estados reais vazios aguardando conexao com o Supabase da colega
@@ -67,9 +67,9 @@ export default function HomeDashboard() {
             Rio do A Corretora
           </Text>
         </View>
-        <Pressable 
+          <Pressable 
           style={styles.btnSair} 
-          onPress={() => Alert.alert('Sair', 'Voltando para a tela de login...')}
+          onPress={() => { if (aoSair) aoSair(); }}
         >
           <Ionicons name="log-out-outline" size={16} color="#30356B" />
           <Text style={styles.txtSair}>Sair</Text>

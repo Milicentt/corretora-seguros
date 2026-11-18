@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import NavegacaoPrincipalScreen from './src/app/navegacao'; // <-- Garanta que está apontando para o arquivo certo aqui
+import LoginScreen from './src/app/index';
+import NavegacaoPrincipalScreen from './src/app/navegacao';
 
 export default function App() {
+  const [usuarioLogado, setUsuarioLogado] = useState(false);
+
   return (
     <SafeAreaProvider>
-      <NavegacaoPrincipalScreen />
+      {usuarioLogado ? (
+        <NavegacaoPrincipalScreen aoSair={() => setUsuarioLogado(false)} />
+      ) : (
+        <LoginScreen aoLogar={() => setUsuarioLogado(true)} />
+      )}
     </SafeAreaProvider>
   );
 }
