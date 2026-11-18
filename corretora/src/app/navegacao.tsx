@@ -1,24 +1,65 @@
-import React, { useState } from 'react';
-import { Text, View, FlatList, Pressable, ScrollView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, {useState, useEffect} from 'react';
+import {Text, View, FlatList, Pressable, ScrollView, Alert, Image} from 'react-native';
+import {Ionicons} from '@expo/vector-icons';
+import {supabase} from '../lib/supabase';
 import DetalhesScreen from './detalhesnav'; 
 import CadastroComissionador from './cadastro-comissionador';
 import TabelasScreen from './tabelas';
-import { listaMenus } from './menuDados';
-import { styles } from './navegacao.styles';
+import {listaMenus} from './menuDados';
+import {styles} from './navegacao.styles';
 
-export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
+export default function HomeDashboard({aoSair}: {aoSair?: () => void}) {
   const [telaAtual, setTelaAtual] = useState('Menu');
+  const [ehAdmin, setEhAdmin] = useState(false);
+  const [nomeUsuario, setNomeUsuario] = useState('Corretor(a)');
 
   // Estados reais vazios aguardando conexao com o Supabase da colega
   const [ultimosLancamentos, setUltimosLancamentos] = useState<any[]>([]);
   const [totalMes, setTotalMes] = useState('R$ 0,00');
   const [repassesAbertos, setRepassesAbertos] = useState('0 corretores');
 
-  // Abre a tela de cadastro de usuarios que o colega fez
+  // Verifica no Supabase se o usuario logado eh administrador e pega o nome dele
+  useEffect(() => {
+    async function carregarUsuario() {
+      const {data: {user}} = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (
+        user.user_metadata?.role === 'admin' || 
+        user.email === 'admin@corretora.example.com'
+      ) {
+        setEhAdmin(true);
+      }
+
+      if (user.user_metadata?.nome) {
+        setNomeUsuario(user.user_metadata.nome);
+      } else if (user.email === 'admin@corretora.example.com') {
+        setNomeUsuario('Administrador');
+      } else if (user.email) {
+        setNomeUsuario(user.email.split('@')[0]);
+      }
+    }
+    carregarUsuario();
+  }, []);
+
+  // Filtra os menus: esconde o cadastro de usuarios para corretores comuns
+  const menusPermitidos = listaMenus.filter(
+    (item) =>
+      ehAdmin ||
+      item.titulo === 'Cadastrar Comissões' ||
+      item.titulo === 'Tabela de Comissões'
+  );
+
+  // Bloqueio de seguranca: para fazer com que apenas administradores acessam a tela de usuarios
   if (telaAtual === 'Cadastrar Usuários') {
+    if (!ehAdmin) {
+      Alert.alert('Acesso Negado', 'Apenas administradores podem cadastrar usuários.');
+      setTelaAtual('Menu');
+      return null;
+    }
+
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         <Pressable style={styles.btnVoltarTopo} onPress={() => setTelaAtual('Menu')}>
           <Ionicons name="arrow-back-outline" size={24} color="#30356B" />
           <Text style={styles.txtVoltarTopo}>Voltar ao Painel</Text>
@@ -28,10 +69,17 @@ export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
     );
   }
 
+  // Bloqueio no Pagamento de Comissoes para nao-admins
+  if (telaAtual === 'Pagamento de Comissões' && !ehAdmin) {
+    Alert.alert('Acesso Negado', 'Apenas administradores podem realizar pagamentos.');
+    setTelaAtual('Menu');
+    return null;
+  }
+
   // Abre a tela de tabelas e pagamentos do outro amigo
   if (telaAtual === 'Tabela de Comissões' || telaAtual === 'Pagamento de Comissões') {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         <Pressable style={styles.btnVoltarTopo} onPress={() => setTelaAtual('Menu')}>
           <Ionicons name="arrow-back-outline" size={24} color="#30356B" />
           <Text style={styles.txtVoltarTopo}>Voltar ao Painel</Text>
@@ -57,17 +105,17 @@ export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
   };
 
   return (
-    <ScrollView style={styles.containerPrincipal} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.containerPrincipal} contentContainerStyle={{paddingBottom: 40}}>
       
-      {/* Cabecalho usando a classe cabecalho do seu styles */}
+      {/* Cabecalho com a logo oficial da corretora */}
       <View style={styles.cabecalho}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="shield-checkmark" size={24} color="#1688B5" />
-          <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1688B5', marginLeft: 8 }}>
-            Rio do A Corretora
-          </Text>
-        </View>
-          <Pressable 
+        <Image
+          source={require('../../assets/images/logo-corretora.png')}
+          style={styles.logoPequena}
+          resizeMode="contain"
+          accessibilityLabel="Logo Rio do A Corretora de Seguros"
+        />
+        <Pressable 
           style={styles.btnSair} 
           onPress={() => { if (aoSair) aoSair(); }}
         >
@@ -77,7 +125,7 @@ export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
       </View>
 
       <Text style={styles.tituloPrincipal}>Painel Principal</Text>
-      <Text style={styles.textoDescricao}>Bem vindo (tal pessoa). Selecione o botão que quiser usar.</Text>
+      <Text style={styles.textoDescricao}>Bem vindo, {nomeUsuario}. Selecione o botão que quiser usar.</Text>
 
       {/* Cards de resumo financeiro */}
       <View style={styles.areaResumo}>
@@ -90,17 +138,18 @@ export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
           <Text style={styles.valorResumo}>{repassesAbertos}</Text>
         </View>
       </View>
+
       <Text style={styles.secaoTitulo}>Módulos do Sistema</Text>
 
       <FlatList
-        data={listaMenus}
+        data={menusPermitidos}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
         scrollEnabled={false}
         columnWrapperStyle={styles.linhaGrade}
-        renderItem={({ item }) => (
+        renderItem={({item}) => (
           <Pressable 
-            style={[styles.cartaoMenu, { borderLeftColor: item.cor }]} 
+            style={[styles.cartaoMenu, {borderLeftColor: item.cor}]} 
             onPress={() => setTelaAtual(item.titulo)}
           >
             {renderizarIcone(item.icone, item.cor)}
@@ -109,12 +158,12 @@ export default function HomeDashboard({ aoSair }: { aoSair?: () => void }) {
         )}
       />
 
-        {/* Area inferior preparada pro supa */}
+      {/* Area inferior preparada pro supa */}
       <View style={styles.areaRecentes}>
         <Text style={styles.secaoTitulo}>Últimas Divisões</Text>
         
         {ultimosLancamentos.length === 0 ? (
-          <Text style={{ color: '#807873', fontSize: 13, paddingVertical: 10 }}>
+          <Text style={{color: '#807873', fontSize: 13, paddingVertical: 10}}>
             Nenhuma divisão registrada no banco de dados ainda.
           </Text>
         ) : (
