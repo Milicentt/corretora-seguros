@@ -11,17 +11,22 @@ export default function CadastroComissionador() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [porcentagem, setPorcentagem] = useState('');
   const [chavePix, setChavePix] = useState('');
   const [salvando, setSalvando] = useState(false);
 
   async function salvarParceiro() {
     if (salvando) return;
 
-    if (!nome.trim() || !email.trim() || !senha || !telefone.trim()) {
-      Alert.alert('Atenção', 'Preencha nome, e-mail, senha e WhatsApp do corretor.');
+    if (!nome.trim() || !email.trim() || !senha || !telefone.trim())  {
+      Alert.alert('Atenção', 'Preencha nome, e-mail, senha, WhatsApp e porcentagem do corretor.');
       return;
     }
-
+  const porcentagemNum = parseFloat(porcentagem.replace(',', '.'));
+    if (isNaN(porcentagemNum) || porcentagemNum <= 0 || porcentagemNum > 100) {
+      Alert.alert('Atenção', 'Digite uma porcentagem válida entre 1 e 100.');
+      return;
+    }
     if (senha.length < 6) {
       Alert.alert('Atenção', 'A senha precisa ter pelo menos 6 caracteres.');
       return;
@@ -59,6 +64,7 @@ export default function CadastroComissionador() {
         {
           nome: nome.trim(),
           telefone: telefone.trim(),
+          porcentagem_padrao: porcentagemNum,
           chave_pix: chavePix.trim(),
           user_id: authData.user?.id,
         },
@@ -75,6 +81,7 @@ export default function CadastroComissionador() {
       setSenha('');
       setTelefone('');
       setChavePix('');
+      setPorcentagem('');
     } catch {
       Alert.alert('Erro', 'Falha na conexão ao tentar cadastrar.');
     } finally {
@@ -129,14 +136,22 @@ export default function CadastroComissionador() {
           value={telefone}
           onChangeText={setTelefone}
         />
-
-        <Text style={styles.label}>Chave Pix (Opcional)</Text>
+ <Text style={styles.label}>Chave Pix (Opcional)</Text>
         <TextInput
           style={styles.input}
           placeholder="CPF, E-mail ou Chave Aleatória"
           accessibilityLabel="Campo para chave Pix do corretor"
           value={chavePix}
           onChangeText={setChavePix}
+        />
+         <Text style={styles.label}>Porcentagem de Comissão (%) *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 30"
+          keyboardType="numeric"
+          accessibilityLabel="Campo para porcentagem padrão de comissão"
+          value={porcentagem}
+          onChangeText={setPorcentagem}
         />
 
         <Pressable

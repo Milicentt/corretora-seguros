@@ -7,6 +7,7 @@ import CadastroComissionador from './cadastro-comissionador';
 import TabelasScreen from './tabelas';
 import {listaMenus} from './menuDados';
 import {styles} from './navegacao.styles';
+import CadastroComissoesScreen from './cadastroComissoes';
 
 export default function HomeDashboard({aoSair}: {aoSair?: () => void}) {
   const [telaAtual, setTelaAtual] = useState('Menu');
@@ -90,6 +91,9 @@ export default function HomeDashboard({aoSair}: {aoSair?: () => void}) {
   }
 
   // Desviar para o molde caso ainda nao tenha tela pronta
+  if (telaAtual === 'Cadastrar Comissões') {
+  return <CadastroComissoesScreen aoVoltar={() => setTelaAtual('Menu')} />;
+}
   if (telaAtual !== 'Menu') {
     return (
       <DetalhesScreen 
