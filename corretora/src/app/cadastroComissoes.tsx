@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {Text, View, TextInput, Pressable, Alert, Linking, ScrollView, Share} from 'react-native';
+import {Text, View, TextInput, Pressable, Alert, Linking, ScrollView, Share, Vibration} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {supabase} from '../lib/supabase';
 import {styles} from './cadastroComissoes.styles';
@@ -199,7 +199,7 @@ export default function CadastroComissoesScreen({
         Alert.alert('Erro no Banco', 'Não foi possível salvar: ' + error.message);
         return;
       }
-
+        Vibration.vibrate(200); // Faz o celular vibrar por 200ms ao confirmar o salvamento  
       Alert.alert('Sucesso', 'Comissão registrada no banco de dados!');
       notificarWhatsApp(calc.totalProdutor, calc.valorParcelaProdutor, calc.parcelasEsgotamento);
 

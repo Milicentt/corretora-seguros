@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {Text, Linking, View, FlatList, Pressable, ScrollView, Alert} from 'react-native';
+import {Text, Linking, View, FlatList, Pressable, ScrollView, Alert, Vibration} from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import {supabase} from '../lib/supabase';
 import {styles} from './tabelas.styles';
@@ -97,7 +97,7 @@ export default function TabelasScreen({
         }
       });
     }
-
+    Vibration.vibrate([0, 150, 100, 150]); // Vibração dupla de confirmação de pagamento
     Alert.alert('Baixa Realizada', `Pagamento referente ao cliente ${item.cliente} registrado!`);
     carregarDados();
   }
