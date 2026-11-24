@@ -21,27 +21,53 @@ export default function HomeDashboard({aoSair}: {aoSair?: () => void}) {
 
   // Verifica no Supabase se o usuario logado eh administrador e pega o nome dele
   useEffect(() => {
-    async function carregarUsuario() {
+    if (telaAtual !== 'Menu') return;
+
+    async function carregarPainel() {
       const {data: {user}} = await supabase.auth.getUser();
       if (!user) return;
 
-      if (
-        user.user_metadata?.role === 'admin' || 
-        user.email === 'admin@corretora.example.com'
-      ) {
-        setEhAdmin(true);
-      }
+      const admin =
+        user.user_metadata?.role === 'admin' ||
+        user.email === 'admin@corretora.example.com';
 
-      if (user.user_metadata?.nome) {
-        setNomeUsuario(user.user_metadata.nome);
+      if (admin) setEhAdmin(true);
+
+      let nomeAtual = user.user_metadata?.nome || '';
+      if (nomeAtual) {
+        setNomeUsuario(nomeAtual);
       } else if (user.email === 'admin@corretora.example.com') {
         setNomeUsuario('Administrador');
       } else if (user.email) {
         setNomeUsuario(user.email.split('@')[0]);
       }
+
+      // Busca as comissoes reais no Supabase
+      let query = supabase.from('comissoes').select('*').order('id', {ascending: false});
+      if (!admin && nomeAtual) {
+        query = query.eq('produtor', nomeAtual);
+      }
+
+      const {data} = await query;
+      if (data) {
+        const somaTotal = data.reduce((acc, item) => acc + Number(item.valor_produtor || 0), 0);
+        setTotalMes(`R$ ${somaTotal.toFixed(2).replace('.', ',')}`);
+
+        const qtdPendentes = data.filter((item) => item.status === 'Pendente').length;
+        setRepassesAbertos(`${qtdPendentes} pendente(s)`);
+
+        const recentes = data.slice(0, 3).map((item) => ({
+          id: item.id,
+          cliente: item.cliente,
+          parceiro: item.produtor,
+          valor: `R$ ${Number(item.valor_produtor || 0).toFixed(2).replace('.', ',')}`,
+        }));
+        setUltimosLancamentos(recentes);
+      }
     }
-    carregarUsuario();
-  }, []);
+
+    carregarPainel();
+  }, [telaAtual]);
 
   // Filtra os menus: esconde o cadastro de usuarios para corretores comuns
   const menusPermitidos = listaMenus.filter(
@@ -85,15 +111,16 @@ export default function HomeDashboard({aoSair}: {aoSair?: () => void}) {
           <Ionicons name="arrow-back-outline" size={24} color="#30356B" />
           <Text style={styles.txtVoltarTopo}>Voltar ao Painel</Text>
         </Pressable>
-        <TabelasScreen />
+        <TabelasScreen ehAdmin={ehAdmin} modo={telaAtual}/>
       </View>
     );
   }
 
   // Desviar para o molde caso ainda nao tenha tela pronta
-  if (telaAtual === 'Cadastrar Comissões') {
-  return <CadastroComissoesScreen aoVoltar={() => setTelaAtual('Menu')} />;
-}
+   if (telaAtual === 'Cadastrar Comissões') {
+    return <CadastroComissoesScreen ehAdmin={ehAdmin} aoVoltar={() => setTelaAtual('Menu')} />;
+  }
+
   if (telaAtual !== 'Menu') {
     return (
       <DetalhesScreen 
@@ -171,9 +198,9 @@ export default function HomeDashboard({aoSair}: {aoSair?: () => void}) {
             Nenhuma divisão registrada no banco de dados ainda.
           </Text>
         ) : (
-          ultimosLancamentos.map((item) => (
+             ultimosLancamentos.map((item) => (
             <View key={item.id} style={styles.itemRecente}>
-              <View>
+              <View style={{flex: 1, paddingRight: 10}}>
                 <Text style={styles.clienteRecente}>{item.cliente}</Text>
                 <Text style={styles.corretorRecente}>Parceiro: {item.parceiro}</Text>
               </View>

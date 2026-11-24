@@ -51,7 +51,7 @@ export default function HomeScreen({ aoLogar }: { aoLogar?: () => void }) {
         setMensagem(
           error.code === 'invalid_credentials'
             ? 'E-mail ou senha incorretos.'
-            : 'Não foi possível entrar. Tente novamente.'
+            : 'Erro no servidor: ' + error.message
         );
         return;
       }
